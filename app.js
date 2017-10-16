@@ -120,7 +120,6 @@ io.on('connection', function(socket) {
            }
           //  console.log(context);
           //  console.log(JSON.stringify(response, null, 2));
-
          }
     });
   });
