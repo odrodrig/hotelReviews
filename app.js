@@ -10,8 +10,6 @@ const serviceCredentials = require('./service-credentials.json');
 //Get the environment variables from Cloud Foundry
 const appEnv = cfenv.getAppEnv();
 
-
-
 // Serve the static files in the /public directory
 app.use(express.static(__dirname + '/public'));
 
@@ -147,44 +145,44 @@ function queryDiscovery(query, callback) {
     });
 }
 
-app.get("/test", function(req, res) {
-  //queryString = "term(city,count:10).term(hotel,count:25)"
-  var answer = "";
-  queryDiscovery("term(city,count:10).term(hotel,count:25)", function(err, queryResults) {
-
-    if (err) {
-      console.log(err);
-    }
-
-
-
-
-    queryResults = queryResults.aggregations[0].results;
-
-    for(var i=0; i<queryResults.length; i++) {
-
-      console.log(context.list);
-      console.log(queryResults[i].key);
-
-      if(queryResults[i].key == context.list) {
-        console.log(queryResults[i].key);
-        console.log(aggregations[0].results.length);
-        for(var x=0; x<queryResults[i].aggregations[0].results.length; x++) {
-
-          if (x == queryResults[i].aggregations[0].results.length) {
-            answer += " and " + queryResults[i].aggregations[0].results[x].key;
-            console.log("last");
-            console.log("answer");
-          } else {
-            console.log(answer);
-            answer += queryResults[i].aggregations[0].results[x].key + " ";
-          }
-        }
-      }
-    }
-    console.log("done");
-    res.send(answer);
-    console.log(answer);
-  });
-
-}) //end Get
+// app.get("/test", function(req, res) {
+//   //queryString = "term(city,count:10).term(hotel,count:25)"
+//   var answer = "";
+//   queryDiscovery("term(city,count:10).term(hotel,count:25)", function(err, queryResults) {
+//
+//     if (err) {
+//       console.log(err);
+//     }
+//
+//
+//
+//
+//     queryResults = queryResults.aggregations[0].results;
+//
+//     for(var i=0; i<queryResults.length; i++) {
+//
+//       console.log(context.list);
+//       console.log(queryResults[i].key);
+//
+//       if(queryResults[i].key == context.list) {
+//         console.log(queryResults[i].key);
+//         console.log(aggregations[0].results.length);
+//         for(var x=0; x<queryResults[i].aggregations[0].results.length; x++) {
+//
+//           if (x == queryResults[i].aggregations[0].results.length) {
+//             answer += " and " + queryResults[i].aggregations[0].results[x].key;
+//             console.log("last");
+//             console.log("answer");
+//           } else {
+//             console.log(answer);
+//             answer += queryResults[i].aggregations[0].results[x].key + " ";
+//           }
+//         }
+//       }
+//     }
+//     console.log("done");
+//     res.send(answer);
+//     console.log(answer);
+//   });
+//
+// }) //end Get
