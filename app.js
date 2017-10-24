@@ -108,6 +108,23 @@ io.on('connection', function(socket) {
               }
 
              });
+           } else if (context.hotel){
+
+              var chosenHotel = context.hotel;
+              console.log("More Info on hotel: ");
+              console.log(chosenHotel);
+
+              queryString = "nested(enriched_text.docSentiment.type).filter('hotel'::chosenHotel)"
+
+              queryDiscovery(queryString, function(err, queryResults) {
+
+                if (err) {
+                  console.log(err);
+                }
+                
+                console.log(JSON.stringify(queryResults, null, 2));
+              });
+
            } else {
              io.emit('chat message', "Hotel Bot: " + reply);
            }
