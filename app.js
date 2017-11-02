@@ -108,21 +108,32 @@ io.on('connection', function(socket) {
               }
 
              });
-           } else if (context.hotel){
+           } else if (context.hotel) {
 
-              var chosenHotel = context.hotel;
+             console.log(context);
+
+              var chosenHotel = context.hotel[0].value;
+
               console.log("More Info on hotel: ");
               console.log(chosenHotel);
 
-              queryString = "nested(enriched_text.docSentiment.type).filter('hotel'::chosenHotel)"
+              queryString = "nested(enriched_text.docSentiment.type).filter(hotel::" + chosenHotel + ").term(enriched_text.docSentiment.type,count:10)"
 
               queryDiscovery(queryString, function(err, queryResults) {
 
                 if (err) {
                   console.log(err);
                 }
-                
-                console.log(JSON.stringify(queryResults, null, 2));
+                console.log(queryResults.aggregations[0].aggregations[0].results);
+
+                var positiveRevs = queryResults.aggregations[0].aggregations[0].results[0].matching_results;
+                var negativeRevs = queryResults.aggregations[0].aggregations[0].results[1].matching_results;
+
+                console.log(positiveRevs);
+                console.log(negativeRevs);
+
+                io.emit('chat message', "Hotel Bot: " + reply.replace(/"/g,"").replace(/_/g," ").replace(/\b\w/g, l => l.toUpperCase()));
+
               });
 
            } else {
@@ -161,45 +172,3 @@ function queryDiscovery(query, callback) {
        }
     });
 }
-
-// app.get("/test", function(req, res) {
-//   //queryString = "term(city,count:10).term(hotel,count:25)"
-//   var answer = "";
-//   queryDiscovery("term(city,count:10).term(hotel,count:25)", function(err, queryResults) {
-//
-//     if (err) {
-//       console.log(err);
-//     }
-//
-//
-//
-//
-//     queryResults = queryResults.aggregations[0].results;
-//
-//     for(var i=0; i<queryResults.length; i++) {
-//
-//       console.log(context.list);
-//       console.log(queryResults[i].key);
-//
-//       if(queryResults[i].key == context.list) {
-//         console.log(queryResults[i].key);
-//         console.log(aggregations[0].results.length);
-//         for(var x=0; x<queryResults[i].aggregations[0].results.length; x++) {
-//
-//           if (x == queryResults[i].aggregations[0].results.length) {
-//             answer += " and " + queryResults[i].aggregations[0].results[x].key;
-//             console.log("last");
-//             console.log("answer");
-//           } else {
-//             console.log(answer);
-//             answer += queryResults[i].aggregations[0].results[x].key + " ";
-//           }
-//         }
-//       }
-//     }
-//     console.log("done");
-//     res.send(answer);
-//     console.log(answer);
-//   });
-//
-// }) //end Get
