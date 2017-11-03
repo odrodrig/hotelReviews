@@ -64,8 +64,39 @@ io.on('connection', function(socket) {
 
            if (context.best) {
 
+             //TODO Have a way to show best hotl by city.
+             //TODO Add average sentiment to the hotel info section
+
              console.log("best");
              console.log(context.best);
+
+             queryString="term(hotel,count:50).average(enriched_text.docSentiment.score)";
+             queryDiscovery(queryString, function(err, queryResults) {
+
+               if (err) {
+                 console.log(err);
+               }
+
+               var highestSent = 0;
+               var currentSent;
+               var bestHotel;
+
+               queryResults = queryResults.aggregations[0].results;
+
+               for (i=0;i<queryResults.length;i++) {
+
+                 currentSent = queryResults[i].aggregations[0].value;
+
+                 if (currentSent > highestSent) {
+                   highestSent=currentSent;
+                   bestHotel=queryResults[i].key;
+                 }
+               }
+
+               io.emit('chat message', "The best hotel is " + bestHotel + " with an average sentiment of "+highestSent);
+
+
+             });
 
            } else if (context.list) {
 
@@ -132,7 +163,10 @@ io.on('connection', function(socket) {
                 console.log(positiveRevs);
                 console.log(negativeRevs);
 
-                io.emit('chat message', "Hotel Bot: " + reply.replace(/"/g,"").replace(/_/g," ").replace(/\b\w/g, l => l.toUpperCase()));
+                chosenHotel = chosenHotel.replace(/"/g,"").replace(/_/g," ").replace(/\b\w/g, l => l.toUpperCase());
+
+                io.emit('chat message', "Hotel Bot: "+reply.replace(/"/g,"")+" "+chosenHotel+" tells us:");
+                io.emit('chat message', "--- Out of "+ (positiveRevs+negativeRevs)+" total reviews, there are "+positiveRevs+" positive reviews and "+negativeRevs+" negative reviews.");
 
               });
 
