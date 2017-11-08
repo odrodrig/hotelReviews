@@ -64,15 +64,13 @@ io.on('connection', function(socket) {
 
            if (context.best) {
 
+
+
              //TODO Have a way to show best hotel by city.
              //TODO Add average sentiment to the hotel info section
 
              console.log("best");
              console.log(context.best);
-
-             var highestSent = 0;
-             var currentSent;
-             var bestHotel;
 
              switch(context.best) {
                case "All":
@@ -85,48 +83,46 @@ io.on('connection', function(socket) {
 
                    queryResults = queryResults.aggregations[0].results;
 
-                   for (i=0;i<queryResults.length;i++) {
+                   findBestHotel(queryResults, function(hotel, sentiment) {
 
-                     currentSent = queryResults[i].aggregations[0].value;
+                     io.emit('chat message', "The best hotel overall is " + hotel + " with an average sentiment of "+sentiment.toFixed(2));
+                   });
 
-                     if (currentSent > highestSent) {
-                       highestSent=currentSent;
-                       bestHotel=queryResults[i].key;
-                     }
-                   }
-                   io.emit('chat message', "The best hotel overall is " + bestHotel + " with an average sentiment of "+highestSent.toFixed(2));
+                   // for (i=0;i<queryResults.length;i++) {
+                   //
+                   //   currentSent = queryResults[i].aggregations[0].value;
+                   //
+                   //   if (currentSent > highestSent) {
+                   //     highestSent=currentSent;
+                   //     bestHotel=queryResults[i].key;
+                   //   }
+                   // }
+                   // io.emit('chat message', "The best hotel overall is " + bestHotel + " with an average sentiment of "+highestSent.toFixed(2));
                  });
                  break;
               case "new-york-city":
 
                   //queryString = "nested(enriched_text.docSentiment.type).filter(city::" + context.best + ").term(enriched_text.docSentiment.type,count:10)"
-                  queryString="nested(enriched_text.docSentiment.score).filter(city::" + context.best + ").term(hotel,count:50).average(enriched_text.docSentiment.score)";
+                  queryString="filter(city::"+context.best+").term(hotel,count:50).average(enriched_text.docSentiment.score)";
                   queryDiscovery(queryString, function(err, queryResults) {
 
                     if (err) {
                       console.log(err);
                     }
 
-                    console.log(queryResults);
+                    console.log(queryResults.aggregations[0].aggregations[0].results);
 
-                    queryResults = queryResults.aggregations[0].results;
+                    queryResults = queryResults.aggregations[0].aggregations[0].results;
 
-                    console.log(queryResults)
+                    findBestHotel(queryResults, function(hotel, sentiment) {
 
-                    for (i=0;i<queryResults.length;i++) {
+                      io.emit('chat message', "The best hotel in New York City is " + hotel + " with an average sentiment of "+sentiment.toFixed(2));
+                    });
 
-                      currentSent = queryResults[i].aggregations[0].value;
-
-                      if (currentSent > highestSent) {
-                        highestSent=currentSent;
-                        bestHotel=queryResults[i].key;
-                      }
-                    }
-                    //io.emit('chat message', "The best hotel overall is " + bestHotel + " with an average sentiment of "+highestSent.toFixed(2));
                   });
                   break;
               case "san-francisco":
-                  queryString="term(hotel,count:50).average(enriched_text.docSentiment.score)";
+                queryString="filter(city::"+context.best+").term(hotel,count:50).average(enriched_text.docSentiment.score)";
                   queryDiscovery(queryString, function(err, queryResults) {
 
                     if (err) {
@@ -135,20 +131,15 @@ io.on('connection', function(socket) {
 
                     queryResults = queryResults.aggregations[0].results;
 
-                    for (i=0;i<queryResults.length;i++) {
+                    findBestHotel(queryResults, function(hotel, sentiment) {
 
-                      currentSent = queryResults[i].aggregations[0].value;
+                      io.emit('chat message', "The best hotel in San Francisco is " + hotel + " with an average sentiment of "+sentiment.toFixed(2));
+                    });
 
-                      if (currentSent > highestSent) {
-                        highestSent=currentSent;
-                        bestHotel=queryResults[i].key;
-                      }
-                    }
-                    io.emit('chat message', "The best hotel overall is " + bestHotel + " with an average sentiment of "+highestSent.toFixed(2));
                   });
                   break;
               case "chicago":
-                  queryString="term(hotel,count:50).average(enriched_text.docSentiment.score)";
+                queryString="filter(city::"+context.best+").term(hotel,count:50).average(enriched_text.docSentiment.score)";
                   queryDiscovery(queryString, function(err, queryResults) {
 
                     if (err) {
@@ -157,16 +148,11 @@ io.on('connection', function(socket) {
 
                     queryResults = queryResults.aggregations[0].results;
 
-                    for (i=0;i<queryResults.length;i++) {
+                    findBestHotel(queryResults, function(hotel, sentiment) {
 
-                      currentSent = queryResults[i].aggregations[0].value;
+                      io.emit('chat message', "The best hotel in Chicago is " + hotel + " with an average sentiment of "+sentiment.toFixed(2));
+                    });
 
-                      if (currentSent > highestSent) {
-                        highestSent=currentSent;
-                        bestHotel=queryResults[i].key;
-                      }
-                    }
-                    io.emit('chat message', "The best hotel overall is " + bestHotel + " with an average sentiment of "+highestSent.toFixed(2));
                   });
                   break;
              }
@@ -278,4 +264,27 @@ function queryDiscovery(query, callback) {
          callback(null, response);
        }
     });
+}
+
+function findBestHotel(qResults, callback) {
+
+  var highestSent = 0;
+  var currentSent;
+  var bestHotel;
+
+  for (i=0;i<qResults.length;i++) {
+
+    currentSent = qResults[i].aggregations[0].value;
+
+    console.log(currentSent);
+
+    if (currentSent > highestSent) {
+      highestSent=currentSent;
+      bestHotel=qResults[i].key;
+    }
+
+  }
+
+  callback(bestHotel, highestSent);
+
 }
