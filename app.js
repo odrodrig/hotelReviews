@@ -1,3 +1,6 @@
+// Author: Oliver Rodriguez
+
+// Modules to import
 const express = require("express");
 const rp = require("request-promise");
 const watson = require("watson-developer-cloud");
@@ -5,14 +8,17 @@ const cfenv = require("cfenv");
 const app = express();
 const server = require("http").createServer(app);
 const io = require('socket.io')(server);
+
+// Import service credentials
 const serviceCredentials = require('./service-credentials.json');
 
-//Get the environment variables from Cloud Foundry
+// Get the environment variables from Cloud Foundry
 const appEnv = cfenv.getAppEnv();
 
 // Serve the static files in the /public directory
 app.use(express.static(__dirname + '/public'));
 
+// Create the Conversation object
 var conversation = new watson.ConversationV1({
   username:serviceCredentials.conversation.username,
   password:serviceCredentials.conversation.password,
@@ -22,7 +28,7 @@ var conversation = new watson.ConversationV1({
 var workspace = serviceCredentials.conversation.workspaceID;
 var context = {};
 
-// Create an instance of the Discovery object
+// Create the Discovery object
 var discovery = new watson.DiscoveryV1({
   username: serviceCredentials.discovery.username,
   password: serviceCredentials.discovery.password,
@@ -31,7 +37,6 @@ var discovery = new watson.DiscoveryV1({
 
 var environmentId = serviceCredentials.discovery.environmentID;
 var collectionId = serviceCredentials.discovery.collectionID;
-
 
 // start server on the specified port and binding host
 server.listen(appEnv.port, '0.0.0.0', function() {
@@ -42,10 +47,15 @@ server.listen(appEnv.port, '0.0.0.0', function() {
 io.on('connection', function(socket) {
   console.log('a user has connected');
 
+  // Handle incomming chat messages
   socket.on('chat message', function(msg) {
 
     console.log('message: ' + msg);
     io.emit('chat message', "you: " + msg);
+
+    /*****************************
+        Send text to Conversation
+    ******************************/
 
     conversation.message({
       context: context,
@@ -62,15 +72,10 @@ io.on('connection', function(socket) {
            var answer = [];
            var city = "";
 
+           /*****************************
+               Find best hotel
+           ******************************/
            if (context.best) {
-
-
-
-             //TODO Have a way to show best hotel by city.
-             //TODO Add average sentiment to the hotel info section
-
-             console.log("best");
-             console.log(context.best);
 
              switch(context.best) {
                case "All":
@@ -85,24 +90,13 @@ io.on('connection', function(socket) {
 
                    findBestHotel(queryResults, function(hotel, sentiment) {
 
-                     io.emit('chat message', "The best hotel overall is " + hotel + " with an average sentiment of "+sentiment.toFixed(2));
+                     io.emit('chat message', "The best hotel overall is " + hotel.replace(/_/g," ").replace(/\b\w/g, l => l.toUpperCase()) + " with an average sentiment of "+sentiment.toFixed(2));
                    });
 
-                   // for (i=0;i<queryResults.length;i++) {
-                   //
-                   //   currentSent = queryResults[i].aggregations[0].value;
-                   //
-                   //   if (currentSent > highestSent) {
-                   //     highestSent=currentSent;
-                   //     bestHotel=queryResults[i].key;
-                   //   }
-                   // }
-                   // io.emit('chat message', "The best hotel overall is " + bestHotel + " with an average sentiment of "+highestSent.toFixed(2));
                  });
                  break;
               case "new-york-city":
 
-                  //queryString = "nested(enriched_text.docSentiment.type).filter(city::" + context.best + ").term(enriched_text.docSentiment.type,count:10)"
                   queryString="filter(city::"+context.best+").term(hotel,count:50).average(enriched_text.docSentiment.score)";
                   queryDiscovery(queryString, function(err, queryResults) {
 
@@ -110,57 +104,58 @@ io.on('connection', function(socket) {
                       console.log(err);
                     }
 
-                    console.log(queryResults.aggregations[0].aggregations[0].results);
-
                     queryResults = queryResults.aggregations[0].aggregations[0].results;
 
                     findBestHotel(queryResults, function(hotel, sentiment) {
 
-                      io.emit('chat message', "The best hotel in New York City is " + hotel + " with an average sentiment of "+sentiment.toFixed(2));
+                      io.emit('chat message', "The best hotel in New York City is " + hotel.replace(/_/g," ").replace(/\b\w/g, l => l.toUpperCase()) + " with an average sentiment of "+sentiment.toFixed(2));
                     });
 
                   });
                   break;
               case "san-francisco":
-                queryString="filter(city::"+context.best+").term(hotel,count:50).average(enriched_text.docSentiment.score)";
+
+                  queryString="filter(city::"+context.best+").term(hotel,count:50).average(enriched_text.docSentiment.score)";
                   queryDiscovery(queryString, function(err, queryResults) {
 
                     if (err) {
                       console.log(err);
                     }
 
-                    queryResults = queryResults.aggregations[0].results;
+                    queryResults = queryResults.aggregations[0].aggregations[0].results;
 
                     findBestHotel(queryResults, function(hotel, sentiment) {
 
-                      io.emit('chat message', "The best hotel in San Francisco is " + hotel + " with an average sentiment of "+sentiment.toFixed(2));
+                      io.emit('chat message', "The best hotel in San Francisco is " + hotel.replace(/_/g," ").replace(/\b\w/g, l => l.toUpperCase()) + " with an average sentiment of "+sentiment.toFixed(2));
                     });
 
                   });
                   break;
               case "chicago":
-                queryString="filter(city::"+context.best+").term(hotel,count:50).average(enriched_text.docSentiment.score)";
+
+                  queryString="filter(city::"+context.best+").term(hotel,count:50).average(enriched_text.docSentiment.score)";
                   queryDiscovery(queryString, function(err, queryResults) {
 
                     if (err) {
                       console.log(err);
                     }
 
-                    queryResults = queryResults.aggregations[0].results;
+                    queryResults = queryResults.aggregations[0].aggregations[0].results;
 
                     findBestHotel(queryResults, function(hotel, sentiment) {
 
-                      io.emit('chat message', "The best hotel in Chicago is " + hotel + " with an average sentiment of "+sentiment.toFixed(2));
+                      io.emit('chat message', "The best hotel in Chicago is " + hotel.replace(/_/g," ").replace(/\b\w/g, l => l.toUpperCase()) + " with an average sentiment of "+sentiment.toFixed(2));
                     });
 
                   });
                   break;
              }
 
+             /*****************************
+                 List hotels
+             ******************************/
            } else if (context.list) {
 
-             console.log("list");
-             console.log(context.list);
              city = context.list;
              queryString = "term(city,count:10).term(hotel,count:25)"
              queryDiscovery(queryString, function(err, queryResults) {
@@ -171,9 +166,6 @@ io.on('connection', function(socket) {
 
                queryResults = queryResults.aggregations[0].results;
                for(var i=0; i<queryResults.length; i++) {
-
-                 console.log(queryResults[i].key);
-                 console.log(city);
 
                  if(queryResults[i].key == city) {
 
@@ -190,7 +182,6 @@ io.on('connection', function(socket) {
                  }
                }
 
-              // io.emit('chat message', "Hotel Bot: " + reply.replace(/"/g,"") + " " + answer);
               io.emit('chat message', "Hotel Bot: " + reply.replace(/"/g,""));
               for( var n=0;n<answer.length;n++) {
                 console.log(answer[n]);
@@ -198,6 +189,9 @@ io.on('connection', function(socket) {
               }
 
              });
+             /*****************************
+                 Get info about hotels
+             ******************************/
            } else if (context.hotel) {
 
              console.log(context);
@@ -214,13 +208,9 @@ io.on('connection', function(socket) {
                 if (err) {
                   console.log(err);
                 }
-                console.log(queryResults.aggregations[0].aggregations[0].results);
 
                 var positiveRevs = queryResults.aggregations[0].aggregations[0].results[0].matching_results;
                 var negativeRevs = queryResults.aggregations[0].aggregations[0].results[1].matching_results;
-
-                console.log(positiveRevs);
-                console.log(negativeRevs);
 
                 chosenHotel = chosenHotel.replace(/"/g,"").replace(/_/g," ").replace(/\b\w/g, l => l.toUpperCase());
 
@@ -237,8 +227,6 @@ io.on('connection', function(socket) {
              console.log("Exited");
              context = {};
            }
-          //  console.log(context);
-          //  console.log(JSON.stringify(response, null, 2));
          }
     });
   });
@@ -248,7 +236,12 @@ app.get('/', function(req, res){
   res.sendFile('index.html');
 });
 
+/*****************************
+    Function Definitions
+******************************/
+
 function queryDiscovery(query, callback) {
+  // Function to query Discovery
 
   discovery.query({
     environment_id: environmentId,
@@ -267,6 +260,7 @@ function queryDiscovery(query, callback) {
 }
 
 function findBestHotel(qResults, callback) {
+  // Function to find the best hotel
 
   var highestSent = 0;
   var currentSent;
@@ -275,8 +269,6 @@ function findBestHotel(qResults, callback) {
   for (i=0;i<qResults.length;i++) {
 
     currentSent = qResults[i].aggregations[0].value;
-
-    console.log(currentSent);
 
     if (currentSent > highestSent) {
       highestSent=currentSent;
