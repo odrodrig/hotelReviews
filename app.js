@@ -291,23 +291,8 @@ function findBestHotel(qResults, callback) {
   callback(bestHotel, highestSent);
 }
 
-function getReviewText(hotel, callback) {
+function getReviewText(qResults, callback) {
 
-  var query = "";
 
-  discovery.query({
-    environment_id: environmentId,
-    collection_id: collectionId,
-    aggregation: query
-    }, function(err, response) {
-       if (err) {
-         console.error(err);
-         callback(err, null);
-       } else {
-         //var results = JSON.stringify(response, null, 2);
-        // console.log(results);
-         callback(null, response);
-       }
-  });
 
 }
