@@ -214,9 +214,16 @@ io.on('connection', function(socket) {
 
                 chosenHotel = chosenHotel.replace(/"/g,"").replace(/_/g," ").replace(/\b\w/g, l => l.toUpperCase());
 
-                io.emit('chat message', "Hotel Bot: "+reply.replace(/"/g,"")+" "+chosenHotel+" tells us:");
-                io.emit('chat message', "--- Out of "+ (positiveRevs+negativeRevs)+" total reviews, there are "+positiveRevs+" positive reviews and "+negativeRevs+" negative reviews.");
+                queryString = "";
+                queryDiscovery(queryString, function(err, queryResults) {
 
+
+
+                  io.emit('chat message', "Hotel Bot: "+reply.replace(/"/g,"")+" "+chosenHotel+" tells us:");
+                  io.emit('chat message', "--- Out of "+ (positiveRevs+negativeRevs)+" total reviews, there are "+positiveRevs+" positive reviews and "+negativeRevs+" negative reviews.");
+
+
+                });
               });
 
 
@@ -282,4 +289,25 @@ function findBestHotel(qResults, callback) {
     }
   }
   callback(bestHotel, highestSent);
+}
+
+function getReviewText(hotel, callback) {
+
+  var query = "";
+
+  discovery.query({
+    environment_id: environmentId,
+    collection_id: collectionId,
+    aggregation: query
+    }, function(err, response) {
+       if (err) {
+         console.error(err);
+         callback(err, null);
+       } else {
+         //var results = JSON.stringify(response, null, 2);
+        // console.log(results);
+         callback(null, response);
+       }
+  });
+
 }

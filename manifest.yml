@@ -1,0 +1,7 @@
+---
+applications:
+- name: hotelReviews
+  host: odr-hotel-reviews
+  domain: mybluemix.net
+  instances: 1
+  memory: 256M
