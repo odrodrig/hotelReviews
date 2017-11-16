@@ -40,6 +40,13 @@ var discovery = new watson.DiscoveryV1({
 var environmentId = serviceCredentials.discovery.environmentID;
 var collectionId = serviceCredentials.discovery.collectionID;
 
+// Create the Tone Analyzer Object
+var toneAnalyzer = new watson.ToneAnalyzerV3({
+  username: serviceCredentials.toneAnalyzer.username,
+  password: serviceCredentials.toneAnalyzer.password,
+  version_date: '2016-05-19'
+});
+
 
 // start server on the specified port and binding host
 server.listen(appEnv.port, '0.0.0.0', function() {
@@ -212,19 +219,37 @@ io.on('connection', function(socket) {
                 var positiveRevs = queryResults.aggregations[0].aggregations[0].results[0].matching_results;
                 var negativeRevs = queryResults.aggregations[0].aggregations[0].results[1].matching_results;
 
-                chosenHotel = chosenHotel.replace(/"/g,"").replace(/_/g," ").replace(/\b\w/g, l => l.toUpperCase());
+                getReviewText(chosenHotel, function(err, text) {
 
-                queryString = "";
-                queryDiscovery(queryString, function(err, queryResults) {
+                  if (err) {
+                    console.log(err);
+                  }
+
+                  toneAnalyzer.tone({ text: text },
+                    function(err, tone) {
+                      if (err)
+                        console.log(err);
+                      else
+                        //console.log(JSON.stringify(tone, null, 2));
+                        console.log(tone.document_tone);
+
+                        chosenHotel = chosenHotel.replace(/"/g,"").replace(/_/g," ").replace(/\b\w/g, l => l.toUpperCase());
+
+                          io.emit('chat message', "Hotel Bot: "+reply.replace(/"/g,"")+" "+chosenHotel+" tells us:");
+                          io.emit('chat message', "--- Out of "+ (positiveRevs+negativeRevs)+" total reviews, there are "+positiveRevs+" positive reviews and "+negativeRevs+" negative reviews.");
+
+                  });
+
+                  console.log(text);
+
+                  chosenHotel = chosenHotel.replace(/"/g,"").replace(/_/g," ").replace(/\b\w/g, l => l.toUpperCase());
+
+                    io.emit('chat message', "Hotel Bot: "+reply.replace(/"/g,"")+" "+chosenHotel+" tells us:");
+                    io.emit('chat message', "--- Out of "+ (positiveRevs+negativeRevs)+" total reviews, there are "+positiveRevs+" positive reviews and "+negativeRevs+" negative reviews.");
 
 
-
-                  io.emit('chat message', "Hotel Bot: "+reply.replace(/"/g,"")+" "+chosenHotel+" tells us:");
-                  io.emit('chat message', "--- Out of "+ (positiveRevs+negativeRevs)+" total reviews, there are "+positiveRevs+" positive reviews and "+negativeRevs+" negative reviews.");
-
-
-                });
-              });
+                  });
+               });
 
 
            } else {
@@ -291,8 +316,31 @@ function findBestHotel(qResults, callback) {
   callback(bestHotel, highestSent);
 }
 
-function getReviewText(qResults, callback) {
+function getReviewText(hotel, callback) {
 
+  discovery.query({
+    environment_id: environmentId,
+    collection_id: collectionId,
+    filter: "hotel:"+hotel,
+    return: "text"
+    }, function(err, response) {
+       if (err) {
+         console.error(err);
+         callback(err, null);
+       } else {
+         // var results = JSON.stringify(response, null, 2);
+         // console.log(results);
+
+         var combinedText = "";
+
+         for (var x=0;x<response.results.length;x++) {
+           combinedText += response.results[x].text;
+           combinedText += " ";
+         }
+
+         callback(null, combinedText);
+       }
+    });
 
 
 }
