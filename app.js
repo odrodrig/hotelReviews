@@ -216,8 +216,13 @@ io.on('connection', function(socket) {
                   console.log(err);
                 }
 
-                var positiveRevs = queryResults.aggregations[0].aggregations[0].results[0].matching_results;
-                var negativeRevs = queryResults.aggregations[0].aggregations[0].results[1].matching_results;
+                if (queryResults.aggregations[0].aggregations[0].results[0]) {
+                  var positiveRevs = queryResults.aggregations[0].aggregations[0].results[0].matching_results;
+                } else { var positiveRevs = 0;}
+
+                if (queryResults.aggregations[0].aggregations[0].results[1]) {
+                  var negativeRevs = queryResults.aggregations[0].aggregations[0].results[1].matching_results;
+                } else { var negativeRevs = 0;}
 
                 getReviewText(chosenHotel, function(err, text) {
 
@@ -231,23 +236,31 @@ io.on('connection', function(socket) {
                         console.log(err);
                       else
                         //console.log(JSON.stringify(tone, null, 2));
-                        console.log(tone.document_tone);
+                        console.log(tone.document_tone.tone_categories[0].tones);
+                        var tones = tone.document_tone.tone_categories[0].tones;
+                        var highestTone = {
+                          name: "",
+                          score: 0
+                        };
+                        var detectedTones = [];
+
+                        for(y=0;y<tones.length;y++) {
+                          if (tones[y].score > highestTone.score) {
+                            highestTone.score = tones[y].score;
+                            highestTone.name = tones[y].tone_name;
+                          }
+
+                          if (tones[y].score >= 0.40) {
+                            detectedTones.push(tones[y].tone_name);
+                          }
+                        }
 
                         chosenHotel = chosenHotel.replace(/"/g,"").replace(/_/g," ").replace(/\b\w/g, l => l.toUpperCase());
 
-                          io.emit('chat message', "Hotel Bot: "+reply.replace(/"/g,"")+" "+chosenHotel+" tells us:");
-                          io.emit('chat message', "--- Out of "+ (positiveRevs+negativeRevs)+" total reviews, there are "+positiveRevs+" positive reviews and "+negativeRevs+" negative reviews.");
-
-                  });
-
-                  console.log(text);
-
-                  chosenHotel = chosenHotel.replace(/"/g,"").replace(/_/g," ").replace(/\b\w/g, l => l.toUpperCase());
-
-                    io.emit('chat message', "Hotel Bot: "+reply.replace(/"/g,"")+" "+chosenHotel+" tells us:");
-                    io.emit('chat message', "--- Out of "+ (positiveRevs+negativeRevs)+" total reviews, there are "+positiveRevs+" positive reviews and "+negativeRevs+" negative reviews.");
-
-
+                        io.emit('chat message', "Hotel Bot: "+reply.replace(/"/g,"")+" "+chosenHotel+" tells us:");
+                        io.emit('chat message', "--- Out of "+ (positiveRevs+negativeRevs)+" total reviews, there are "+positiveRevs+" positive reviews and "+negativeRevs+" negative reviews.");
+                        io.emit('chat message', "--- The detected tones include "+ detectedTones +" with  "+highestTone.name+" being the most apparent emotional tone with a confidence of "+(highestTone.score*100).toFixed(0)+"%");
+                    });
                   });
                });
 
@@ -328,8 +341,6 @@ function getReviewText(hotel, callback) {
          console.error(err);
          callback(err, null);
        } else {
-         // var results = JSON.stringify(response, null, 2);
-         // console.log(results);
 
          var combinedText = "";
 
