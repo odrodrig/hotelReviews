@@ -234,8 +234,8 @@ io.on('connection', function(socket) {
                     function(err, tone) {
                       if (err)
                         console.log(err);
-                      else
-                        //console.log(JSON.stringify(tone, null, 2));
+          
+
                         console.log(tone.document_tone.tone_categories[0].tones);
                         var tones = tone.document_tone.tone_categories[0].tones;
                         var highestTone = {
