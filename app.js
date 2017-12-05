@@ -47,6 +47,11 @@ var toneAnalyzer = new watson.ToneAnalyzerV3({
   version_date: '2016-05-19'
 });
 
+var personalityInsights = new watson.PersonalityInsightsV3({
+  username: serviceCredentials.personality.username,
+  password: serviceCredentials.personality.password,
+  version_date: '2017-10-13'
+});
 
 // start server on the specified port and binding host
 server.listen(appEnv.port, '0.0.0.0', function() {
@@ -234,7 +239,7 @@ io.on('connection', function(socket) {
                     function(err, tone) {
                       if (err)
                         console.log(err);
-          
+
 
                         console.log(tone.document_tone.tone_categories[0].tones);
                         var tones = tone.document_tone.tone_categories[0].tones;
@@ -254,6 +259,20 @@ io.on('connection', function(socket) {
                             detectedTones.push(tones[y].tone_name);
                           }
                         }
+
+                        personalityInsights.profile({
+                          "text": text,
+                          "consumption_preferences": true
+                        }, function(err, response) {
+
+                          if (err) {
+                            console.log(err);
+                          } else {
+                            console.log(JSON.stringify(response, null, 2));
+                          }
+
+
+                        })
 
                         chosenHotel = chosenHotel.replace(/"/g,"").replace(/_/g," ").replace(/\b\w/g, l => l.toUpperCase());
 
