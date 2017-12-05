@@ -260,6 +260,13 @@ io.on('connection', function(socket) {
                           }
                         }
 
+                        chosenHotel = chosenHotel.replace(/"/g,"").replace(/_/g," ").replace(/\b\w/g, l => l.toUpperCase());
+
+                        io.emit('chat message', "Hotel Bot: "+reply.replace(/"/g,"")+" "+chosenHotel+" tells us:");
+                        io.emit('chat message', "--- Out of "+ (positiveRevs+negativeRevs)+" total reviews, there are "+positiveRevs+" positive reviews and "+negativeRevs+" negative reviews.");
+                        io.emit('chat message', "--- The detected tones include "+ detectedTones +" with  "+highestTone.name+" being the most apparent emotional tone with a confidence of "+(highestTone.score*100).toFixed(0)+"%");
+                        io.emit('chat message', "--- Personality traits include: ");
+
                         personalityInsights.profile({
                           "text": text,
                           "consumption_preferences": true
@@ -268,17 +275,23 @@ io.on('connection', function(socket) {
                           if (err) {
                             console.log(err);
                           } else {
-                            console.log(JSON.stringify(response, null, 2));
+
+                            getPersonalityTraits(response, function(personality, preference) {
+
+                              for(i=0;i<personality.length;i++) {
+                                io.emit('chat message', "--- --- "+personality[i].trait+" has a score of "+personality[i].score.toFixed(2)+" and shows traits of "+personality[i].child.name+".");
+                              };
+
+                              io.emit('chat message', "--- Identified consumption preference: ");
+                              io.emit('chat message', "--- --- "+preference);
+
+
+                            });
                           }
 
 
-                        })
+                        });
 
-                        chosenHotel = chosenHotel.replace(/"/g,"").replace(/_/g," ").replace(/\b\w/g, l => l.toUpperCase());
-
-                        io.emit('chat message', "Hotel Bot: "+reply.replace(/"/g,"")+" "+chosenHotel+" tells us:");
-                        io.emit('chat message', "--- Out of "+ (positiveRevs+negativeRevs)+" total reviews, there are "+positiveRevs+" positive reviews and "+negativeRevs+" negative reviews.");
-                        io.emit('chat message', "--- The detected tones include "+ detectedTones +" with  "+highestTone.name+" being the most apparent emotional tone with a confidence of "+(highestTone.score*100).toFixed(0)+"%");
                     });
                   });
                });
@@ -372,5 +385,58 @@ function getReviewText(hotel, callback) {
        }
     });
 
+
+}
+
+function getPersonalityTraits(response, callback) {
+  // Function that parses response from personality insights 
+
+  var big5 = [];
+  var traitScore;
+
+  for (i=0;i<response.personality.length;i++){
+
+    var highestChildScore = 0;
+    var traitScore = response.personality[i].percentile;
+
+    for (x=0;x<response.personality[i].children.length;x++){
+
+      var currentChildScore = response.personality[i].children[x].percentile;
+
+      if (currentChildScore > highestChildScore) {
+        highestChildScore = currentChildScore;
+        big5[i] = {
+          trait: response.personality[i].name,
+          score: traitScore,
+          child: response.personality[i].children[x]
+        }
+      }
+    }
+  }
+
+  for(i=0;i<big5.length;i++) {
+    console.log(big5[i].trait);
+    console.log(big5[i].score);
+    console.log(big5[i].child.name);
+  }
+
+  console.log(big5);
+
+  var consumptionPrefs = [];
+
+  for (i=0;i<response.consumption_preferences[0].consumption_preferences.length;i++) {
+
+    if(response.consumption_preferences[0].consumption_preferences[i].score == 1) {
+      consumptionPrefs.push(response.consumption_preferences[0].consumption_preferences[i].name);
+    }
+  }
+
+  for(i=0;i<consumptionPrefs.length;i++) {
+    console.log(consumptionPrefs[i]);
+  }
+
+  var preference = consumptionPrefs[Math.floor(Math.random() * consumptionPrefs.length)];
+
+  callback(big5, preference);
 
 }
